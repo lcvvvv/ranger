@@ -10,7 +10,7 @@ import (
 var raw = `["1","2","3","4","5","6","67","8"]`
 
 func TestJson(t *testing.T) {
-	var r = Ranger[int]{}
+	var r = Ranger[string]{}
 	err := json.Unmarshal([]byte(raw), &r)
 	if err != nil {
 		log.Fatalln(err)
@@ -23,4 +23,6 @@ func TestJson(t *testing.T) {
 	}
 	fmt.Println(string(buf))
 
+	r.Push("a")
+	fmt.Println(r.Value())
 }

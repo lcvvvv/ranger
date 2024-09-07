@@ -3,6 +3,8 @@ package ranger
 import (
 	"encoding/json"
 	"sort"
+	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -19,6 +21,42 @@ func New[T int | string](vs ...T) *Ranger[T] {
 	}
 	r.Push(vs...)
 	return r
+}
+
+func ParseNumber(s string) *Ranger[int] {
+	numberRanger := New[int]()
+	colon := strings.Split(s, ",")
+	for _, express := range colon {
+		numberRanger.Push(generateNumberRange(express)...)
+	}
+	return numberRanger
+}
+
+func generateNumberRange(s string) (ports []int) {
+	dash := strings.Split(s, "-")
+	if len(dash) > 2 {
+		return ports
+	}
+
+	port1, err := strconv.Atoi(dash[0])
+	if err != nil {
+		return ports
+	}
+
+	ports = append(ports, port1)
+	if len(dash) == 1 {
+		return ports
+	}
+
+	port2, err := strconv.Atoi(dash[1])
+	if err != nil {
+		return ports
+	}
+
+	for port := port1 + 1; port <= port2; port++ {
+		ports = append(ports, port)
+	}
+	return ports
 }
 
 func (r *Ranger[T]) Length() int32 {
@@ -117,4 +155,28 @@ func (r *Ranger[T]) UnmarshalJSON(b []byte) error {
 
 func (r *Ranger[T]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.Value())
+}
+
+func (r *Ranger[T]) Intersection(r1 []T) *Ranger[T] {
+	var r2 = New[T]()
+	for _, cell := range r1 {
+		if r.Contains(cell) {
+			r2.Push(cell)
+		}
+	}
+	return r2
+}
+
+func (r *Ranger[T]) Subtract(s []T) *Ranger[T] {
+	var r1 = New[T](s...)
+	var r2 = New[T]()
+
+	r.Map.Range(func(key, value any) bool {
+		if r1.ContainsAll(key.(T)) {
+			return true
+		}
+		r2.Push(key.(T))
+		return true
+	})
+	return r2
 }
