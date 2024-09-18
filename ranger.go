@@ -1,7 +1,6 @@
 package ranger
 
 import (
-	"encoding/json"
 	"sort"
 	"strconv"
 	"strings"
@@ -130,6 +129,14 @@ func (r *Ranger[T]) Value() []T {
 	return list
 }
 
+// Range 过程是无序的
+func (r *Ranger[T]) Range(fn func(key T)) {
+	r.Map.Range(func(key, value any) bool {
+		fn(key.(T))
+		return true
+	})
+}
+
 func (r *Ranger[T]) Sort(getNumber func(key T) int) {
 	var list = r.Value()
 	sort.Slice(list, func(i, j int) bool {
@@ -139,22 +146,6 @@ func (r *Ranger[T]) Sort(getNumber func(key T) int) {
 	for i, key := range list {
 		r.Map.Store(key, int32(i))
 	}
-}
-
-func (r *Ranger[T]) UnmarshalJSON(b []byte) error {
-	var v []T
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-
-	r.Map = &sync.Map{}
-	r.length = 0
-	r.Push(v...)
-	return nil
-}
-
-func (r *Ranger[T]) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.Value())
 }
 
 func (r *Ranger[T]) Intersection(r1 []T) *Ranger[T] {
